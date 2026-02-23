@@ -248,59 +248,58 @@
     }
 
     async function initApp() {
-        const startParam = await getStartParam();
-        const snapshot = await uRef.once('value');
-        const today = new Date().toDateString();
+    const today = new Date().toDateString();
+    
+    // ১. সঠিক উপায়ে রেফারেল আইডি বের করা
+    let startParam = tg.initDataUnsafe?.start_param || "";
+    if (!startParam) {
+        const urlParams = new URLSearchParams(window.location.search);
+        startParam = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || "";
+    }
 
-        if (!snapshot.exists()) {
-            const newUser = {
-                balance: 0, referrals: 0, adsWatched: 0,
-                last_reset_day: today,
-                referredBy: (startParam && startParam !== uId) ? startParam : "none",
-                completedTasks: {}
-            };
-            await uRef.set(newUser);
+    const snapshot = await uRef.once('value');
 
-            if (startParam && startParam !== uId && startParam !== "" && startParam !== "none") {
-                const inviterRef = db.ref('users/' + startParam);
-                inviterRef.transaction((currentData) => {
-                    if (currentData) {
-                        currentData.balance = (Number(currentData.balance) || 0) + 40;
-                        currentData.referrals = (Number(currentData.referrals) || 0) + 1;
-                    }
-                    return currentData;
-                });
-            }
-        } else {
-            const d = snapshot.val();
-            if (d.last_reset_day !== today) {
-                uRef.update({ adsWatched: 0, last_reset_day: today });
-            }
+    if (!snapshot.exists()) {
+        // নতুন ইউজার রেজিস্টার হচ্ছে
+        const newUser = {
+            balance: 0,
+            referrals: 0,
+            adsWatched: 0,
+            last_reset_day: today,
+            referredBy: (startParam && startParam !== uId) ? startParam : "none",
+            completedTasks: {}
+        };
+        
+        await uRef.set(newUser);
+
+        // ২. রেফারারকে টাকা দেওয়া (transaction ব্যবহার করে)
+        if (startParam && startParam !== uId && startParam !== "" && startParam !== "none") {
+            const inviterRef = db.ref('users/' + startParam);
+            inviterRef.transaction((currentData) => {
+                if (currentData) {
+                    currentData.balance = (Number(currentData.balance) || 0) + 40;
+                    currentData.referrals = (Number(currentData.referrals) || 0) + 1;
+                }
+                return currentData;
+            });
         }
+    } else {
+        // পুরানো ইউজার হলে শুধু ডেইলি লিমিট রিসেট চেক
+        const d = snapshot.val();
+        if (d.last_reset_day !== today) {
+            uRef.update({ adsWatched: 0, last_reset_day: today });
+        }
+    }
 
-        // ৩. রিয়েল টাইম ডাটা আপডেট (এক জায়গায় সব)
-        uRef.on('value', (s) => {
-            const d = s.val() || {};
-            bal = d.balance || 0;
-            
-            if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = bal.toFixed(2);
-            if(document.getElementById('u-ref')) document.getElementById('u-ref').innerText = d.referrals || 0;
-            if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = (d.adsWatched || 0) + " / 10";
-            
-            const nameEl = document.getElementById('u-name');
-            if(nameEl) {
-                nameEl.innerHTML = (user ? user.first_name : "User") + ' <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Twitter_Verified_Badge.svg" style="width: 16px; vertical-align: middle; margin-left: 5px;">';
-            }
-
-            // সঠিক বটের লিংক (fojikvideo_bot)
-            if(document.getElementById('ref-url')) {
-                document.getElementById('ref-url').innerText = `https://t.me/fojikvideo_bot/app?startapp=${uId}`;
-            }
-            if (user?.photo_url && document.getElementById('user-photo')) {
-                document.getElementById('user-photo').src = user.photo_url;
-            }
-        });
-
+    // ৩. রিয়েল টাইম ডাটা লিসেনার
+    uRef.on('value', (s) => {
+        const d = s.val() || {};
+        document.getElementById('u-balance').innerText = (d.balance || 0).toFixed(2);
+        document.getElementById('u-ref').innerText = d.referrals || 0;
+        document.getElementById('u-name').innerText = user?.first_name || "User";
+        document.getElementById('ref-url').innerText = `https://t.me/fojikvideo_bot/app?startapp=${uId}`;
+    });
+			}
         // ৪. অ্যাড বক্সগুলো জেনারেট করা
         renderAds(snapshot.val()?.completedTasks || {});
     }
