@@ -208,7 +208,7 @@
     </nav>
 
     <script>
-    // ১. Firebase Config
+    // ১. আপনার দেওয়া কনফিগ
     const firebaseConfig = { 
         apiKey: "AIzaSyCO7VEV5kJCQT11Cn0RYvgyBh8JypFVRgs", 
         databaseURL: "https://fojik-video-default-rtdb.firebaseio.com", 
@@ -224,91 +224,80 @@
     const user = tg.initDataUnsafe?.user;
     const uId = user?.id ? String(user.id) : "guest_user";
     const uRef = db.ref('users/' + uId);
-    let bal = 0; // গ্লোবাল ব্যালেন্স ভেরিয়েবল
+    let bal = 0;
 
-    // ২. আপনার অ্যাড লিঙ্কগুলো (সবগুলো এখানে আছে)
-    const adLinks = [
-        'https://www.effectivegatecpm.com/ryk3u53hv9?key=e22b7e110ad6415a286ab7d67eaaab01',
-        'https://www.effectivegatecpm.com/kgcr5va9hr?key=d05d5b6553b85edd5d134c8c72222e5c',
-        'https://www.effectivegatecpm.com/ryk3u53hv9?key=e22b7e110ad6415a286ab7d67eaaab01',
-        'https://www.effectivegatecpm.com/kgcr5va9hr?key=d05d5b6553b85edd5d134c8c72222e5c'
-    ];
+    // ২. রেফার ও অ্যাপ ইনিশিয়ালাইজেশন
+    async function initApp() {
+        const today = new Date().toDateString();
+        
+        // রেফার আইডি ধরার জন্য রিট্রাই লজিক
+        let startParam = "";
+        for (let i = 0; i < 10; i++) {
+            startParam = tg.initDataUnsafe?.start_param || "";
+            if (!startParam) {
+                const urlParams = new URLSearchParams(window.location.search);
+                startParam = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || "";
+            }
+            if (startParam) break;
+            await new Promise(r => setTimeout(r, 500)); 
+        }
 
-    function getStartParam() {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                let param = tg.initDataUnsafe?.start_param || "";
-                if (!param) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    param = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || "";
-                }
-                resolve(String(param));
-            }, 700); 
+        const snapshot = await uRef.once('value');
+
+        if (!snapshot.exists()) {
+            // নতুন ইউজার ডাটাবেজে সেভ হচ্ছে
+            const newUser = {
+                balance: 0,
+                referrals: 0,
+                adsWatched: 0,
+                last_reset_day: today,
+                referredBy: (startParam && startParam !== uId) ? String(startParam) : "none",
+                completedTasks: {}
+            };
+            await uRef.set(newUser);
+
+            // ইনভাইটারকে বোনাস দেওয়া
+            if (startParam && startParam !== uId && startParam !== "" && startParam !== "none") {
+                const inviterRef = db.ref('users/' + startParam);
+                await inviterRef.transaction((currentData) => {
+                    if (currentData) {
+                        currentData.balance = (Number(currentData.balance) || 0) + 40;
+                        currentData.referrals = (Number(currentData.referrals) || 0) + 1;
+                    }
+                    return currentData;
+                });
+            }
+        }
+
+        // ৩. রিয়েল টাইম ডাটা আপডেট (লিঙ্ক এবং ব্যালেন্স)
+        uRef.on('value', (s) => {
+            const d = s.val() || {};
+            bal = d.balance || 0;
+            
+            if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = bal.toFixed(2);
+            if(document.getElementById('u-ref')) document.getElementById('u-ref').innerText = d.referrals || 0;
+            if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = (d.adsWatched || 0) + " / 10";
+            if(document.getElementById('u-name')) document.getElementById('u-name').innerText = user?.first_name || "User";
+            
+            // আপনার দেওয়া সঠিক বটের নাম অনুযায়ী লিঙ্ক
+            if(document.getElementById('ref-url')) {
+                document.getElementById('ref-url').innerText = `https://t.me/fojikvideo_bot/app?startapp=${uId}`;
+            }
         });
     }
 
-    async function initApp() {
-    const today = new Date().toDateString();
-    
-    // ১. রেফারেল আইডি ধরার জন্য রিট্রাই লজিক
-    let startParam = "";
-    for (let i = 0; i < 5; i++) {
-        startParam = tg.initDataUnsafe?.start_param || "";
-        if (!startParam) {
-            const urlParams = new URLSearchParams(window.location.search);
-            startParam = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || "";
-        }
-        if (startParam) break;
-        await new Promise(r => setTimeout(r, 600)); 
+    // ৪. পেজ নেভিগেশন ফাংশন (যাতে পেজ পরিবর্তন হয়)
+    function nav(id, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        const targetPage = document.getElementById(id);
+        if (targetPage) targetPage.classList.add('active-page');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if (el) el.classList.add('active');
     }
 
-    const snapshot = await uRef.once('value');
-
-    if (!snapshot.exists()) {
-        // নতুন ইউজার রেজিস্টার
-        const newUser = {
-            balance: 0,
-            referrals: 0,
-            adsWatched: 0,
-            last_reset_day: today,
-            referredBy: (startParam && startParam !== uId) ? String(startParam) : "none",
-            completedTasks: {}
-        };
-        await uRef.set(newUser);
-
-        // ২. রেফারারকে টাকা দেওয়া
-        if (startParam && startParam !== uId && startParam !== "" && startParam !== "none") {
-            const inviterRef = db.ref('users/' + startParam);
-            await inviterRef.transaction((currentData) => {
-                if (currentData) {
-                    currentData.balance = (Number(currentData.balance) || 0) + 40;
-                    currentData.referrals = (Number(currentData.referrals) || 0) + 1;
-                }
-                return currentData;
-            });
-        }
-    } else {
-        const d = snapshot.val();
-        if (d.last_reset_day !== today) {
-            uRef.update({ adsWatched: 0, last_reset_day: today });
-        }
-    }
-
-    // ৩. রিয়েল টাইম UI আপডেট
-    uRef.on('value', (s) => {
-        const d = s.val() || {};
-        const balance = Number(d.balance) || 0;
-        const referrals = Number(d.referrals) || 0;
-        
-        if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = balance.toFixed(2);
-        if(document.getElementById('u-ref')) document.getElementById('u-ref').innerText = referrals;
-        
-        // রেফার লিংক জেনারেশন
-        if(document.getElementById('ref-url')) {
-            document.getElementById('ref-url').innerText = `https://t.me/fojikvideo_bot/app?startapp=${uId}`;
-        }
-    });
-	} 
+    // অ্যাপ স্টার্ট
+    initApp();
         // ৪. অ্যাড বক্সগুলো জেনারেট করা
         renderAds(snapshot.val()?.completedTasks || {});
     }
