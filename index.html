@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta property="og:type" content="website">
+<meta property="og:url" content="https://mini-app2-pi.vercel.app/">
+<meta property="og:title" content="Fojik Earn Bot">
+<meta property="og:description" content="প্রতি রেফারে ৪০ টাকা আয় করুন! শুধু বিজ্ঞাপন দেখে প্রতিদিন পেমেন্ট নিন।">
+<meta property="og:image" content="https://i.ibb.co/DDJw0SVY/17481.jpg">
+
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="https://mini-app2-pi.vercel.app/">
+<meta property="twitter:title" content="Fojik Earn Bot">
+<meta property="twitter:description" content="প্রতি রেফারে ৪০ টাকা আয় করুন! শুধু বিজ্ঞাপন দেখে প্রতিদিন পেমেন্ট নিন।">
+<meta property="twitter:image" content="https://i.ibb.co/DDJw0SVY/17481.jpg">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* আপনার আগের সব CSS এখানে থাকবে */
+    
+        /* হুবহু ডিজাইন CSS যা আপনি দিয়েছেন */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #0d1117; color: white; padding-bottom: 90px; }
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .active-page { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Header & Balance Badge */
+        .header { display: flex; align-items: center; gap: 12px; padding: 25px 20px; }
+        .u-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #3b82f6; padding: 2px; }
+        .u-name-text { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+        .balance-badge { background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 4px 12px; border-radius: 20px; font-size: 13px; border: 1px solid #3b82f6; display: inline-block; margin-top: 5px; }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: #161b22; border: 1px solid #30363d; border-radius: 15px; padding: 20px; text-align: center; }
+        .stat-box p { font-size: 11px; color: #8b949e; margin-bottom: 8px; }
+        .stat-box h2 { font-size: 24px; color: #3b82f6; }
+
+        /* Card System */
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 25px; margin-bottom: 20px; text-align: center; }
+        .btn-blue { background: #007bff; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-green { background: #28a745; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-withdraw { background: linear-gradient(90deg, #f80759 0%, #bc4e9c 100%); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: bold; width: 100%; font-size: 16px; margin-top: 10px; cursor: pointer; }
+ 
+        /* Support Grid */
+        .supp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .supp-card { background: #1c2128; border: 1px solid #30363d; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; }
+        .supp-card i { font-size: 24px; color: #3b82f6; display: block; margin-bottom: 8px; }
+		/* অ্যাড কার্ডের বিশেষ ডিজাইন */
+.ad-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 15px;
+    text-align: center; /* সব কিছু মাঝখানে থাকবে */
+}
+
+.ad-icon {
+    font-size: 50px; /* আইকন বড় হবে */
+    color: #3b82f6;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.ad-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #ffffff;
+}
+
+.btn-verify {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    font-size: 15px;
+}
+        /* Withdraw Input */
+        .w-input { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 14px; color: white; outline: none; margin-bottom: 15px; font-size: 14px; }
+
+        /* Navigation (বাটনগুলো আপনার পছন্দমত ঠিক করা হয়েছে) */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #161b22; border-top: 1px solid #30363d; display: flex; justify-content: space-around; padding: 12px 0; z-index: 100; }
+        .nav-item { color: #8b949e; text-align: center; font-size: 11px; flex: 1; border: none; background: none; cursor: pointer; }
+        .nav-item i { display: block; font-size: 22px; margin-bottom: 4px; font-style: normal; }
+        .nav-item.active { color: #3b82f6; }
+		.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #e0e0e0; }
+.input-group label i { color: #3b82f6; margin-right: 5px; }
+
+.w-input { 
+    width: 100%; 
+    background: #0d1117; 
+    border: 1px solid #30363d; 
+    border-radius: 10px; 
+    padding: 14px; 
+    color: white; 
+    outline: none; 
+    font-size: 14px; 
+    transition: 0.3s;
+}
+
+.w-input:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img id="user-photo" class="u-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+        <div>
+            <div id="u-name" class="u-name-text">Loading... <span style="color:#3b82f6">✔️</span></div>
+            <div class="balance-badge">৳ <span id="u-balance">0.00</span> Taka 💰</div>
+        </div>
+    </div>
+
+    <div id="home" class="page active-page">
+        <h2 style="margin-bottom:15px;">Dashboard</h2>
+        <div class="stats-grid">
+            <div class="stat-box"><p>Daily Ads Watched</p><h2 id="u-ads">0 / 10</h2></div>
+            <div class="stat-box"><p>Total Referrals</p><h2 id="u-ref">0</h2></div>
+        </div>
+        <div class="card">
+            <h3>𝐑𝐞𝐟𝐞𝐫 & 𝐄𝐚𝐫𝐧 𝐌𝐨𝐫𝐞!</h3>
+			<p>রেফার বোনাস পেতে লিঙ্কটি কপি করে আপনার বন্ধুদের কাছে শেয়ার করুন। প্রতি রেফারে আয় ৪০ টাকা।</p>		
+            <div id="ref-url" style="background:#0d1117; padding:12px; border-radius:10px; border:1px dashed #30363d; font-size:10px; color:#58a6ff; margin-bottom:15px; word-break:break-all;">Loading Link...</div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="copyRef()" class="btn-blue">Copy Referral Link</button>
+                <button onclick="shareRef()" class="btn-green">Share Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="support" class="page">
+        <h2 style="margin-bottom:15px;">🎧 Support</h2>
+        <div class="card" style="background: linear-gradient(145deg, #1c2128, #0d1117);">
+            <div style="font-size: 40px; margin-bottom: 10px;">▶️</div>
+            <h3>𝐓𝐮𝐭𝐨𝐫𝐢𝐚𝐥 𝐕𝐢𝐝𝐞𝐨</h3>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+   কিভাবে অ্যাপটি ব্যবহার করবেন—টিউটোরিয়াল ভিডিও দেখে নিন এবং সহজেই আয় শুরু করুন।
+			</p>
+            <button onclick="window.open('https://t.me/fojik_earn/17')" class="btn-blue" style="background: #2575fc;">𝗢𝗽𝗲𝗻 𝗧𝘂𝘁𝗼𝗿𝗶𝗮𝗹</button>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+    
+			</p>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+    🎬 ভিডিও দেখে সব কিছু বুঝে নিন।
+			</p>
+        </div>
+        <div class="supp-grid">
+            <div class="supp-card" onclick="window.open('https://t.me/fojiksupport')"><i>✈️</i><span>𝗧𝗲𝗹𝗲𝗴𝗿𝗮𝗺</span></div>
+            <div class="supp-card" onclick="window.open('mailto:fojikapp@gmail.com')"><i>📧</i><span>ইমেইল</span></div>
+            <div class="supp-card" onclick="window.open('https://t.me/fojiklive_chat')"><i>💬</i><span>𝗟𝗶𝘃𝗲 𝗖𝗵𝗮𝘁</span></div>
+            <div class="supp-card" onclick="window.open('https://omg10.com/4/10588503)"><i>❓</i><span>FAQ</span></div>
+        </div>
+    </div>
+
+    <div id="tasks" class="page">
+        <h2 style="margin-bottom:15px;">Complete Tasks</h2>
+        <div id="ad-list"></div>
+        <div class="card">
+            <div style="background:#007bff; width:50px; height:50px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">✈️</div>
+            <h3>𝗝𝗼𝗶𝗻 𝗼𝘂𝗿 𝗧𝗲𝗹𝗲𝗴𝗿𝗮𝗺 𝗖𝗵𝗮𝗻𝗻𝗲𝗹</h3>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+    
+			</p>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+    চ্যানেলে জয়েন করার জন্য ৩০ টাকা আয় করুন।
+			</p>
+            <button id="join-btn" onclick="handleTask('join-btn', 'https://t.me/fojik_earn', 30)" class="btn-blue">Join & Claim</button>
+        </div>
+    </div>
+
+    <div id="withdraw" class="page">
+    <h2 style="margin-bottom:15px;">💰 Withdraw</h2>
+    <div class="card" style="text-align: left;">
+        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: #3b82f6; font-weight:bold;">Minimum Withdraw: 800.00 TAKA</p>
+			<p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+    
+			</p>
+            <p style="font-size: 11px; color: #f80759; margin-top: 5px; font-weight: 500;">আমরা শুধু পারসোনাল নাম্বারে পেমেন্ট করি!</p>
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-credit-card"></i> 𝗦𝗲𝗹𝗲𝗰𝘁 𝗮𝗻𝘆 𝗺𝗲𝘁𝗵𝗼𝗱:</label>
+            <select id="w-method" class="w-input">
+                <option value="">Select method:</option>
+                <option value="BKash">𝗕𝗞𝗮𝘀𝗵</option>
+                <option value="Nagad">𝗡𝗮𝗴𝗮𝗱</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-address-card"></i> 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗡𝘂𝗺𝗯𝗲𝗿:</label>
+            <input type="text" id="w-number" class="w-input" placeholder="01XXXXXXXXX">
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-money-bill-wave"></i> 𝗦𝗲𝗹𝗲𝗰𝘁 𝗔𝗺𝗼𝘂𝗻𝘁:</label>
+            <input type="number" id="w-amount" class="w-input" placeholder="(Min 800)">
+        </div>
+
+        <button onclick="submitWithdraw()" class="btn-withdraw">🚀 𝗦𝘂𝗯𝗺𝗶𝘁 𝗪𝗶𝘁𝗵𝗱𝗿𝗮𝘄 𝗥𝗲𝗾𝘂𝗲𝘀𝘁</button>
+    </div>
+	</div>
+
+    <nav class="nav-bar">
+        <button class="nav-item active" onclick="nav('home', this)"><i>🏠</i>Home</button>
+        <button class="nav-item" onclick="nav('support', this)"><i>🎧</i>Support</button>
+        <button class="nav-item" onclick="nav('tasks', this)"><i>📋</i>Tasks</button>
+        <button class="nav-item" onclick="nav('withdraw', this)"><i>💰</i>Withdraw</button>
+    </nav>
+
+    <script>
+    // আপনার আগের সব কোড (Firebase Config থেকে initApp পর্যন্ত) মুছে দিয়ে এটি বসান
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBLLd_QBvaxXSq2zWi3_wjQQ7CKb7-5a6U", 
+        databaseURL: "https://fojikearn-default-rtdb.firebaseio.com", 
+        projectId: "fojikearn" 
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const user = tg.initDataUnsafe?.user;
+    const uId = user?.id ? String(user.id) : "guest_user";
+    const uRef = db.ref('users/' + uId);
+
+    function getStartParam() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                let param = tg.initDataUnsafe?.start_param || "";
+                if (!param) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    param = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || "";
+                }
+                resolve(String(param));
+            }, 700); 
+        });
+    }
+
+    async function initApp() {
+        const startParam = await getStartParam();
+        const snapshot = await uRef.once('value');
+        const today = new Date().toDateString();
+
+        if (!snapshot.exists()) {
+            const newUser = {
+                balance: 0,
+                referrals: 0,
+                adsWatched: 0,
+                last_reset_day: today,
+                referredBy: (startParam && startParam !== uId) ? startParam : "none",
+                completedTasks: {}
+            };
+            await uRef.set(newUser);
+
+            if (startParam && startParam !== uId && startParam !== "" && startParam !== "none") {
+                const inviterRef = db.ref('users/' + startParam);
+                inviterRef.transaction((currentData) => {
+                    if (currentData) {
+                        currentData.balance = (Number(currentData.balance) || 0) + 40;
+                        currentData.referrals = (Number(currentData.referrals) || 0) + 1;
+                    }
+                    return currentData;
+                });
+            }
+        } else {
+            const d = snapshot.val();
+            if (d.last_reset_day !== today) {
+                uRef.update({ adsWatched: 0, last_reset_day: today });
+            }
+        }
+
+        // রিয়েল টাইম ডাটা আপডেট করার লিসেনার (UI এর জন্য)
+        uRef.on('value', (s) => {
+            const d = s.val() || {};
+            if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = (d.balance || 0).toFixed(2);
+            if(document.getElementById('u-ref')) document.getElementById('u-ref').innerText = d.referrals || 0;
+            if(document.getElementById('u-name')) document.getElementById('u-name').innerText = user?.first_name || "User";
+            if(document.getElementById('ref-url')) document.getElementById('ref-url').innerText = `https://t.me/fojikearn_bot/app?startapp=${uId}`;
+            if (user?.photo_url && document.getElementById('user-photo')) document.getElementById('user-photo').src = user.photo_url;
+        });
+    }
+
+    // সবশেষে ফাংশনটি অবশ্যই কল করবেন
+    initApp();
+
+// ২. তোমার অ্যাড লিঙ্কগুলো
+const adLinks = [
+    'https://www.effectivegatecpm.com/ryk3u53hv9?key=e22b7e110ad6415a286ab7d67eaaab01',
+    'https://www.effectivegatecpm.com/kgcr5va9hr?key=d05d5b6553b85edd5d134c8c72222e5c',
+    'https://www.effectivegatecpm.com/ryk3u53hv9?key=e22b7e110ad6415a286ab7d67eaaab01',
+    'https://www.effectivegatecpm.com/kgcr5va9hr?key=d05d5b6553b85edd5d134c8c72222e5c'
+];
+
+// ৩. প্রোফাইল ডাটা রিয়েলটাইম আপডেট (UI Update)
+uRef.on('value', (s) => {
+    const d = s.val() || {balance:0, referrals:0, adsWatched:0};
+    bal = d.balance || 0;
+
+    if (user && user.photo_url) {
+        const photoEl = document.getElementById('user-photo');
+        if(photoEl) photoEl.src = user.photo_url;
+    }
+
+    if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = bal.toFixed(2);
+    if(document.getElementById('u-ref')) document.getElementById('u-ref').innerText = d.referrals || 0;
+    if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = (d.adsWatched || 0) + " / 10";
+
+    const nameEl = document.getElementById('u-name');
+    if(nameEl) {
+        nameEl.innerHTML = (user ? user.first_name : "User") + ' <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Twitter_Verified_Badge.svg" style="width: 16px; vertical-align: middle; margin-left: 5px;">';
+    }
+
+    const refUrlEl = document.getElementById('ref-url');
+    if(refUrlEl) {
+        refUrlEl.innerText = `https://t.me/fojikearn_bot/app?startapp=${uId}`;
+    }
+});
+
+        // ২. ৯টি বিজ্ঞাপনের বক্স তৈরি
+        uRef.once('value').then(s => {
+            const d = s.val() || {};
+            const completedTasks = d.completedTasks || {};
+            const today = new Date().toDateString();
+            const adList = document.getElementById('ad-list');
+            
+            if(!adList) return;
+            adList.innerHTML = ""; 
+
+            for(let i=1; i<=9; i++) {
+                const btnId = `ad-${i}`;
+                const currentLink = adLinks[(i-1) % adLinks.length];
+                const isDone = (completedTasks[btnId] === today);
+                const statusText = isDone ? "Daily bonus claimed✅" : "পুরস্কার পেতে ১৫ সেকেন্ড বিজ্ঞাপনে থাকুন।";
+
+                adList.innerHTML += `
+                <div class="ad-card">
+                    <i class="ad-icon">📹</i>
+                    <div class="ad-title">𝗥𝗲𝘄𝗮𝗿𝗱𝗲𝗱 𝗔𝗱 #${i}</div>
+                    <p style="font-size: 13px; color: #ccc; margin-bottom: 10px;">
+                        প্রতিটি বিজ্ঞাপনের জন্য ১০ টাকা আয় করুন।
+                    </p>
+                    <button id="ad-btn-${i}" onclick="handleTask('${btnId}', '${currentLink}', 10)" class="btn-verify">
+                        Verify <i class="fas fa-check-square"></i>
+                    </button>
+                    <p id="msg-${btnId}" style="font-size: 11px; color: #8b949e; margin-top: 10px;">
+                        ${statusText}
+                    </p>
+                </div>`;
+            }
+        });
+
+
+		let adStartTimes = {}; 
+let isWatching = {};
+
+function handleTask(btnId, link, amount) {
+    const today = new Date().toDateString();
+    const btn = document.getElementById(btnId === 'join-btn' ? 'join-btn' : `ad-btn-${btnId.split('-')[1]}`);
+    const msg = document.getElementById(`msg-${btnId}`);
+
+    // --- ১. টেলিগ্রাম চ্যানেল জয়েন টাস্ক (সারাজীবনে মাত্র ১ বার) ---
+    if (btnId === 'join-btn') {
+        uRef.once('value').then(s => {
+            const d = s.val() || {};
+            const completedTasks = d.completedTasks || {};
+            
+            // যদি আগে কখনো এই 'telegram_forever' টাস্কটি করে থাকে
+            if (completedTasks['telegram_forever']) {
+                tg.showAlert("Channel join bonus Already claimed✅");
+                btn.innerText = "Claimed ✅";
+                btn.disabled = true;
+                return;
+            }
+
+            tg.openTelegramLink(link);
+            btn.innerText = "Verifying...";
+            btn.style.pointerEvents = "none";
+
+            setTimeout(() => {
+                uRef.update({
+                    balance: (d.balance || 0) + amount,
+                    [`completedTasks/telegram_forever`]: true // সারাজীবনের জন্য সেভ
+                }).then(() => {
+                    tg.showAlert(`Channel join bonus ${amount} claimed✅`);
+                    btn.innerText = "Claimed ✅";
+                    btn.style.background = "#28a745";
+                });
+            }, 5000);
+        });
+        return; 
+    }
+
+    // --- ২. বক্সের বিজ্ঞাপন টাস্ক (প্রতিদিন ১ বার টাকা পাবেন) ---
+    if (!isWatching[btnId]) {
+        adStartTimes[btnId] = Date.now();
+        isWatching[btnId] = true;
+        
+        window.open(link, '_blank'); 
+
+        btn.innerText = "Check Task"; 
+        btn.style.background = "#ffc107"; 
+        btn.style.color = "#000";
+    } else {
+        const timeSpent = (Date.now() - adStartTimes[btnId]) / 1000;
+
+        if (timeSpent < 15) {
+            const left = Math.ceil(15 - timeSpent);
+            tg.showAlert(`❌ আপনি ১৫ সেকেন্ড এড দেখেন নি। আরও ${left} সেকেন্ড দেখুন।`);
+            
+            // বক্স রিসেট
+            btn.innerText = "Verify";
+            btn.style.background = "#007bff";
+            btn.style.color = "#fff";
+            isWatching[btnId] = false;
+        } else {
+            uRef.once('value').then(s => {
+                const d = s.val() || {};
+                const completedTasks = d.completedTasks || {};
+
+                // প্রতিদিনের চেক (আজকের তারিখ অনুযায়ী)
+                if (completedTasks[btnId] !== today) {
+                    uRef.update({
+                        balance: (d.balance || 0) + amount,
+                        adsWatched: (d.adsWatched || 0) + 1,
+                        [`completedTasks/${btnId}`]: today // আজ টাকা পেল
+                    }).then(() => {
+                        tg.showAlert(`Daily bonus ${amount} claimed✅`);
+                        if (msg) msg.innerText = "Daily bonus claimed✅";
+                    });
+                } else {
+                   
+                    if (msg) msg.innerText = "Daily bonus claimed✅";
+                }
+                
+                // বক্স আবার আগের মতো হয়ে যাবে
+                btn.innerText = "Verify";
+                btn.style.background = "#007bff";
+                btn.style.color = "#fff";
+                isWatching[btnId] = false;
+            });
+        }
+    }
+}
+        // বাকি ফাংশনগুলো
+        function submitWithdraw() {
+    const method = document.getElementById('w-method').value; // পদ্ধতি ধরার জন্য
+    const amtInput = document.getElementById('w-amount').value;
+    const amt = parseFloat(amtInput);
+    const num = document.getElementById('w-number').value;
+
+    if(!method || !amtInput || !num) { 
+        tg.showAlert("সব তথ্য পূরণ করুন।"); 
+        return; 
+    }
+    
+    if(bal < 800) { 
+        tg.showAlert("দুঃখীত পর্যাপ্ত ব্যালেন্স নাই।"); 
+    }
+    else if(amt < 800) { 
+        tg.showAlert("Minimum Withdraw: 800 Taka"); 
+    }
+    else {
+        uRef.update({ balance: bal - amt }).then(() => {
+            tg.showAlert("Withdraw Request Successful✅");
+            document.getElementById('w-amount').value = "";
+            document.getElementById('w-number').value = "";
+            document.getElementById('w-method').value = ""; // রিসেট
+        });
+    }
+		}
+
+        function copyRef() {
+            const link = document.getElementById('ref-url').innerText;
+            const el = document.createElement('textarea');
+            el.value = link; document.body.appendChild(el);
+            el.select(); document.execCommand('copy');
+            document.body.removeChild(el);
+            tg.showAlert("Link copied");
+        }
+
+        function shareRef() {
+            const link = document.getElementById('ref-url').innerText;
+            tg.openTelegramLink(`https://t.me/share/url?url=${link}&text=Earn easily!`);
+        }
+
+        function nav(id, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(id).classList.add('active-page');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+	</script>
+</body>
+          </html>
