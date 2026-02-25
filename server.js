@@ -8,7 +8,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ১. আপনার সাজানো MongoDB লিঙ্কটি নিচের কোটেশনের ভেতর বসান
-const MONGO_URI = "mongodb+srv://fojikearn:aual@aual@cluster0.yhqofqf.mongodb.net/?appName=Cluster0"; 
+const MONGO_URI = "mongodb+srv://fojikearn:aual%40aual@cluster0.yhqofqf.mongodb.net/?appName=Cluster0"; 
 // উপরে <db_password> কেটে আপনার আসল পাসওয়ার্ড দিন
 
 const BOT_TOKEN = "8740191296:AAELPLQaCwWxtQeZFvMVeNdM3Gvnt_zYFK8";
