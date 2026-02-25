@@ -7,77 +7,78 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ১. আপনার MongoDB লিঙ্ক (পাসওয়ার্ডসহ)
+// ১. ডাটাবেজ কানেকশন
 const MONGO_URI = "mongodb+srv://fojikearn:aual%40aual@cluster0.yhqofqf.mongodb.net/?appName=Cluster0"; 
-
-// ২. ডাটাবেজ স্কিমা (এখানে ব্যালেন্স এবং টাস্কের হিসাব থাকবে)
-const userSchema = new mongoose.Schema({
-    userId: { type: String, unique: true },
-    balance: { type: Number, default: 0 },
-    referralCount: { type: Number, default: 0 },
-    referredBy: String,
-    adsWatched: { type: Number, default: 0 },
-    completedTasks: { type: Object, default: {} } // টাস্কের হিস্ট্রি রাখার জন্য
-});
-
-const User = mongoose.model('User', userSchema);
-
-// ৩. ডাটাবেজ কানেকশন
 mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB Connected Successfully!'))
     .catch(err => console.error('Connection Error:', err));
 
-// ৪. ইউজার তৈরি বা ডাটা চেক করার API
+// ২. ইউজার স্কিমা
+const userSchema = new mongoose.Schema({
+    userId: { type: String, unique: true },
+    balance: { type: Number, default: 0 },
+    referralCount: { type: Number, default: 0 },
+    referredBy: { type: String, default: "none" },
+    adsWatched: { type: Number, default: 0 },
+    completedTasks: { type: Object, default: {} }
+});
+const User = mongoose.model('User', userSchema);
+
+// ৩. ইউজার তৈরি ও রেফারেল বোনাস লজিক (এটিই মেইন সমস্যা ছিল)
 app.post('/api/user', async (req, res) => {
     const { userId, referrerId } = req.body;
+    const currentUserId = String(userId);
+    const inviterId = (referrerId && referrerId !== currentUserId) ? String(referrerId) : null;
+
     try {
-        let user = await User.findOne({ userId: String(userId) });
+        let user = await User.findOne({ userId: currentUserId });
+
         if (!user) {
-            user = new User({ userId: String(userId), referredBy: referrerId });
-            await user.save();
+            // নতুন ইউজার ডাটাবেজে সেভ করার আগেই রেফারারকে বোনাস দিতে হবে
+            console.log(`New user detected: ${currentUserId}`);
             
-            // রেফারাল বোনাস (যদি কেউ রেফার লিঙ্কে আসে)
-            if (referrerId && referrerId !== userId) {
-                await User.findOneAndUpdate(
-                    { userId: String(referrerId) },
-                    { $inc: { balance: 40, referralCount: 1 } } 
+            user = new User({ 
+                userId: currentUserId, 
+                referredBy: inviterId || "none"
+            });
+            await user.save();
+
+            // বোনাস দেওয়ার অংশ
+            if (inviterId) {
+                const bonusResult = await User.findOneAndUpdate(
+                    { userId: inviterId },
+                    { $inc: { balance: 40, referralCount: 1 } },
+                    { new: true }
                 );
+                if (bonusResult) {
+                    console.log(`SUCCESS: 40 Taka added to inviter ${inviterId}`);
+                } else {
+                    console.log(`FAILED: Inviter ${inviterId} not found in database.`);
+                }
             }
         }
         res.json(user);
     } catch (error) {
+        console.error("API Error:", error);
         res.status(500).json({ error: 'Server Error' });
     }
 });
 
-// ৫. টাকা যোগ করা এবং টাস্ক আপডেট করার API
+// ৪. ব্যালেন্স আপডেট API
 app.post('/api/add-balance', async (req, res) => {
     const { userId, amount, taskId } = req.body;
     try {
-        const updateData = {
-            $inc: { balance: amount }
-        };
-
-        // যদি এটি কোন বিজ্ঞাপন টাস্ক হয়
+        const update = { $inc: { balance: amount } };
         if (taskId && taskId.startsWith('ad-')) {
-            updateData.$inc.adsWatched = 1;
-            updateData.$set = { [`completedTasks.${taskId}`]: new Date().toDateString() };
-        } 
-        // যদি এটি টেলিগ্রাম টাস্ক হয়
-        else if (taskId === 'telegram_forever') {
-            updateData.$set = { [`completedTasks.${taskId}`]: true };
+            update.$inc.adsWatched = 1;
+            update.$set = { [`completedTasks.${taskId}`]: new Date().toDateString() };
         }
-
-        const user = await User.findOneAndUpdate(
-            { userId: String(userId) },
-            updateData,
-            { new: true }
-        );
+        const user = await User.findOneAndUpdate({ userId: String(userId) }, update, { new: true });
         res.json(user);
     } catch (error) {
-        res.status(500).json({ error: 'Balance update failed' });
+        res.status(500).json({ error: 'Failed' });
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
